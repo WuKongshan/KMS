@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.kms</groupId>
+        <artifactId>kms</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>kms-database</artifactId>
+    <name>kms-database</name>
+    <description>Data-access layer: DM8 (relational, MyBatis-Plus) + TDengine (time-series) dual datasources</description>
+
+    <dependencies>
+        <!-- HikariCP + JdbcTemplate + transaction support -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+
+        <!-- MyBatis-Plus for Spring Boot 3: DM8 metadata/alerts access -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+        </dependency>
+
+        <!-- PaginationInnerInterceptor lives here since MyBatis-Plus 3.5.9 -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser</artifactId>
+        </dependency>
+
+        <!-- DM8 JDBC driver -->
+        <dependency>
+            <groupId>com.dameng</groupId>
+            <artifactId>DmJdbcDriver18</artifactId>
+        </dependency>
+
+        <!-- TDengine JDBC driver: real-time time-series access -->
+        <dependency>
+            <groupId>com.taosdata.jdbc</groupId>
+            <artifactId>taos-jdbcdriver</artifactId>
+        </dependency>
+
+        <!-- Connection tests against the Docker containers -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

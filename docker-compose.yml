@@ -1,0 +1,82 @@
+# =====================================================================
+# KMS (关键指标监控系统) Docker 环境 — Step 0
+#
+# 前置条件:
+#   1. 先导入达梦镜像 (只需执行一次):
+#        docker load -i dm8_20241022_x86_rh6_64_single.tar
+#      导入后的镜像为 dm8_single:dm8_20241022_rev244896_x86_rh6_64
+#   2. TDengine 镜像会自动从 Docker Hub 拉取
+#
+# 常用命令:
+#   启动:   docker compose up -d
+#   查看:   docker compose ps
+#   日志:   docker compose logs -f dm8
+#   停止:   docker compose down        (加 -v 会同时删除数据卷)
+#
+# 宿主机连接信息:
+#   达梦 DM8:    jdbc:dm://localhost:30236                               SYSDBA / SYSDBA001
+#   TDengine:    jdbc:TAOS://localhost:6030/?timezone=Asia/Shanghai      root / taosdata
+#   TDengine REST: http://localhost:6041
+#   Redis:       localhost:6379 (无密码)
+#
+# 注意: 数据卷为 Docker 命名卷 (非宿主机路径), 在 Windows/WSL2 下均可正常使用
+# =====================================================================
+
+services:
+  # 达梦数据库 DM8 (关系型库: 元数据、预警记录、若依表结构)
+  dm8:
+    image: dm8_single:dm8_20241022_rev244896_x86_rh6_64
+    container_name: dm8_test
+    restart: always
+    privileged: true
+    environment:
+      PAGE_SIZE: 16
+      LD_LIBRARY_PATH: /opt/dmdbms/bin
+      INSTANCE_NAME: dm8_test
+      TZ: Asia/Shanghai
+    ports:
+      - "30236:5236"
+    volumes:
+      - dm8_data:/opt/dmdbms/data
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/5236' 2>/dev/null || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # TDengine (时序库: 实时性能指标数据)
+  tdengine:
+    image: tdengine/tdengine:latest
+    container_name: tdengine
+    restart: always
+    environment:
+      TZ: Asia/Shanghai
+    ports:
+      - "6030:6030"   # 原生 JDBC / taos 客户端
+      - "6041:6041"   # REST API
+    volumes:
+      - taos_data:/var/lib/taos
+    healthcheck:
+      test: ["CMD-SHELL", "taos -s 'select server_version()' >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # Redis (若依缓存/会话; 可选 — 若依也可使用本机 Redis)
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    # 如需设置密码, 取消下行注释, 并在若依 application.yml 中同步配置:
+    # command: redis-server --requirepass 123456
+
+volumes:
+  dm8_data:
+  taos_data:
+  redis_data:

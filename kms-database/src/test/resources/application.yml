@@ -1,0 +1,15 @@
+# Connection settings for the kms-database tests — same shape as the app
+# modules' application.yml. The tests require the Docker containers to be up
+# (docker compose up -d); every value can be overridden via env vars.
+kms:
+  datasource:
+    dm:
+      driver-class-name: dm.jdbc.driver.DmDriver
+      url: jdbc:dm://${DB_HOST:localhost}:30236
+      username: ${DB_USER:SYSDBA}
+      password: ${DB_PASSWORD:SYSDBA001}
+    tdengine:
+      driver-class-name: com.taosdata.jdbc.ws.WebSocketDriver
+      url: jdbc:TAOS-WS://${DB_HOST:localhost}:6041/kms?timezone=Asia/Shanghai
+      username: ${TDENGINE_USER:root}
+      password: ${TDENGINE_PASSWORD:taosdata}

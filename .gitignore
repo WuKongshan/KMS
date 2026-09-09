@@ -1,0 +1,52 @@
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+
+# Java
+*.class
+*.log
+
+# Frontend (RuoYi-Vue, later steps)
+node_modules/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# DM8 Docker image archive (806 MB, exceeds Gitee 100 MB limit)
+*.tar
+
+# Prompt spec files (not for upload)
+4.*.txt
+
+# JVM crash dumps
+hs_err_pid*
+
+# Runtime logs
+logs/
+
+# Claude Code local settings
+.claude/

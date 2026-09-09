@@ -1,0 +1,38 @@
+# KMS web (module D) — dual datasources + RuoYi-style UI server.
+# DB_HOST / DB_USER / DB_PASSWORD / TDENGINE_USER / TDENGINE_PASSWORD /
+# SERVER_PORT can all be overridden via environment variables (spec 4.4).
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: kms-web
+  # Serve the built Vue3 frontend from classpath:/static (copied from
+  # kms-web/frontend/dist at build time).
+  web:
+    resources:
+      static-locations: classpath:/static/
+
+# Logback level, overridable via the LOG_LEVEL env var.
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+
+kms:
+  datasource:
+    dm:
+      driver-class-name: dm.jdbc.driver.DmDriver
+      url: jdbc:dm://${DB_HOST:localhost}:30236
+      username: ${DB_USER:SYSDBA}
+      password: ${DB_PASSWORD:SYSDBA001}
+    tdengine:
+      # TAOS-WS is the pure-Java protocol (no taos.dll needed); native TAOS://6030
+      # requires the TDengine C client on the host, TAOS-RS://6041 also works.
+      # The /kms database is auto-created on startup by the collector.
+      driver-class-name: com.taosdata.jdbc.ws.WebSocketDriver
+      url: jdbc:TAOS-WS://${DB_HOST:localhost}:6041/kms?timezone=Asia/Shanghai
+      username: ${TDENGINE_USER:root}
+      password: ${TDENGINE_PASSWORD:taosdata}
+  web:
+    # Collector REST control API (module A, port 8081) used by the ops page.
+    collector-base-url: ${COLLECTOR_BASE_URL:http://localhost:8081}
