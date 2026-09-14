@@ -1,26 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <!-- Root level is configurable via application.yml (logging.level.root). -->
+    <!-- 【中文】根日志级别由 application.yml 的 logging.level.root 决定（默认 INFO）。 -->
     <springProperty scope="context" name="ROOT_LEVEL" source="logging.level.root" defaultValue="INFO"/>
 
+    <!-- 控制台输出：开发/前台运行时查看，格式为“时间 + 线程 + 级别 + 类名 + 消息” -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
+            <!-- %thread 便于区分采集线程 kms-collect-loop 与 Tomcat 请求线程 -->
             <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 
     <!-- Rolling file appender (spec 4.2: Logback logging); daily rollover, 7 days kept. -->
+    <!-- 【中文】滚动文件日志（规格 4.2 要求使用 Logback）；按天滚动，最多保留 7 天。 -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- 当前日志文件，相对于采集程序的工作目录 -->
         <file>logs/kms-collector.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- 历史文件命名：logs/kms-collector.2025-01-01.log -->
             <fileNamePattern>logs/kms-collector.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- 最多保留 7 个历史文件，超出自动删除 -->
             <maxHistory>7</maxHistory>
         </rollingPolicy>
         <encoder>
+            <!-- 文件日志格式与控制台保持一致，便于对照排查 -->
             <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 
+    <!-- 根 logger：级别取 ${ROOT_LEVEL}，同时挂控制台与文件两个 appender -->
     <root level="${ROOT_LEVEL}">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>

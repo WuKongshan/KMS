@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+    <!-- 分析模块的 Logback 配置：日志同时输出到控制台与 logs/kms-analyser.log，按天滚动、保留 7 天。 -->
     <!-- Root level is configurable via application.yml (logging.level.root). -->
+    <!-- 根日志级别可在 application.yml 的 logging.level.root 中配置（未配置时用下面的默认值 INFO）。 -->
     <springProperty scope="context" name="ROOT_LEVEL" source="logging.level.root" defaultValue="INFO"/>
 
+    <!-- 控制台输出：前台运行（或 IDE 里启动）时能直接看到分析与预警日志。 -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
@@ -10,8 +13,10 @@
     </appender>
 
     <!-- Rolling file appender; daily rollover, 7 days kept. -->
+    <!-- 滚动文件日志：按天切分，最多保留 7 份历史文件。 -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>logs/kms-analyser.log</file>
+        <!-- 滚动策略：文件名里的 %d{yyyy-MM-dd} 让每天生成一个新文件。 -->
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>logs/kms-analyser.%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>7</maxHistory>
@@ -21,6 +26,7 @@
         </encoder>
     </appender>
 
+    <!-- 根记录器：同时挂上控制台与文件两个 appender，级别取自 application.yml / LOG_LEVEL 环境变量。 -->
     <root level="${ROOT_LEVEL}">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>

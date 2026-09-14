@@ -1,19 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <!-- Root level is configurable via application.yml (logging.level.root). -->
+    <!-- 【中文】根日志级别交由 application.yml 的 logging.level.root 决定（该值又可用 LOG_LEVEL
+         环境变量覆盖），通过 springProperty 注入，避免在此处再硬编码一份级别配置。 -->
     <springProperty scope="context" name="ROOT_LEVEL" source="logging.level.root" defaultValue="INFO"/>
+    <!-- 【中文】把 Spring 配置项 logging.level.root 暴露为 Logback 上下文变量 ROOT_LEVEL，
+         未配置时回退为 INFO，做到“日志级别只在 application.yml 一处维护”。 -->
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
+            <!-- 【中文】控制台输出格式：时间（毫秒精度）+ 线程名 + 级别 + 精简 logger 名 + 消息，便于本地调试。 -->
             <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 
     <!-- Rolling file appender; daily rollover, 7 days kept. -->
+    <!-- 【中文】滚动文件日志：按天切分（logs/kms-web.log → logs/kms-web.yyyy-MM-dd.log），
+         最多保留 7 天历史文件，避免日志无限增长占满磁盘。 -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- 【中文】当前生效的日志文件（滚动切换后，历史内容进入下方 fileNamePattern 命名的文件）。 -->
         <file>logs/kms-web.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- 【中文】历史文件名模式：%d{yyyy-MM-dd} 表示每天一个文件。 -->
             <fileNamePattern>logs/kms-web.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- 【中文】最多保留 7 个历史文件（即 7 天）。 -->
             <maxHistory>7</maxHistory>
         </rollingPolicy>
         <encoder>
@@ -22,6 +32,8 @@
     </appender>
 
     <root level="${ROOT_LEVEL}">
+        <!-- 【中文】根 logger 同时挂载控制台与文件两个 appender：控制台便于开发调试，
+             文件用于留下可事后追溯的运行日志。 -->
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
     </root>

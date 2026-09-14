@@ -1,41 +1,60 @@
 # KMS analyser (module C) — dual datasources + analysis loop + WebSocket push.
 # DB_HOST / DB_USER / DB_PASSWORD / TDENGINE_USER / TDENGINE_PASSWORD /
 # SERVER_PORT can all be overridden via environment variables (spec 4.4).
+# KMS 分析模块（模块 C）配置：达梦 + TDengine 双数据源、分析循环、WebSocket 推送。
+# 【中文】DB_HOST / DB_USER / DB_PASSWORD / TDENGINE_USER / TDENGINE_PASSWORD / SERVER_PORT
+# 【中文】以上环境变量都能覆盖下面的默认值（规格 4.4）。
 server:
+  # 分析模块监听 8082（采集模块 8081、Web 模块 8080）
   port: ${SERVER_PORT:8082}
 
 spring:
   application:
+    # 应用名，会出现在启动横幅与日志的 application name 里
     name: kms-analyser
 
 # Logback level, overridable via the LOG_LEVEL env var.
+# 日志级别（root），可用 LOG_LEVEL 环境变量覆盖。
 logging:
   level:
+    # root 级别默认 INFO；也可用 -Dlogging.level.root=DEBUG 启动参数覆盖
     root: ${LOG_LEVEL:INFO}
 
 kms:
   datasource:
     dm:
+      # 达梦主库（元数据与预警结果）：驱动 + 连接信息，DB_HOST 默认 localhost，容器映射端口 30236
       driver-class-name: dm.jdbc.driver.DmDriver
       url: jdbc:dm://${DB_HOST:localhost}:30236
+      # 达梦默认账号 SYSDBA / SYSDBA001，可用 DB_USER、DB_PASSWORD 覆盖
       username: ${DB_USER:SYSDBA}
       password: ${DB_PASSWORD:SYSDBA001}
     tdengine:
       # TAOS-WS is the pure-Java protocol (no taos.dll needed); native TAOS://6030
       # requires the TDengine C client on the host, TAOS-RS://6041 also works.
       # The /kms database is auto-created on startup by the collector.
+      # TAOS-WS 是纯 Java 协议（无需 taos.dll）；原生 TAOS://6030 需要宿主机安装
+      # TDengine C 客户端，TAOS-RS://6041 也可用。kms 库由采集模块启动时自动创建。
       driver-class-name: com.taosdata.jdbc.ws.WebSocketDriver
+      # URL 必须带 timezone=Asia/Shanghai：容器时区与宿主机不同，
+      # 不加会导致"最近 1 小时"这类按时间聚合的查询出现 8 小时偏移
       url: jdbc:TAOS-WS://${DB_HOST:localhost}:6041/kms?timezone=Asia/Shanghai
+      # TDengine 默认账号 root / taosdata，可用 TDENGINE_USER、TDENGINE_PASSWORD 覆盖
       username: ${TDENGINE_USER:root}
       password: ${TDENGINE_PASSWORD:taosdata}
   analyser:
     # Analysis cycle: read the latest two points of every metric and evaluate
     # rules (spec 4.3).
+    # 分析循环：读取每项指标最近两个点并对规则表达式求值（规格 4.3）。
+    # interval-ms 是 fixedDelay：上一轮结束后再等 30 秒开下一轮；首轮延迟 15 秒
     interval-ms: 30000
     initial-delay-ms: 15000
     # Suppress repeated alerts for the same metric + level within this window.
+    # 同一"指标 + 级别"的重复预警在该窗口内被抑制（冷却去重，单位：分钟）。
     alert-cooldown-minutes: 5
     # Dynamic thresholds: every 5 minutes recompute mean +- 2*std over the
     # last hour for metrics flagged dynamic in t_metric_def (bonus feature).
+    # 动态阈值：每 5 分钟对 t_metric_def 中标记为动态（dynamic_threshold=1）的指标，
+    # 用最近 1 小时数据重算 mean ± 2*std（加分项）。
     dynamic-threshold-interval-ms: 300000
     dynamic-threshold-initial-delay-ms: 120000

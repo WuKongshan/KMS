@@ -1,30 +1,44 @@
 # KMS collector (module A) — dual datasources + REST control API.
+# 【中文】KMS 采集模块（模块 A）配置：双数据源 + REST 控制 API。
 # DB_HOST / DB_USER / DB_PASSWORD / TDENGINE_USER / TDENGINE_PASSWORD /
 # SERVER_PORT can all be overridden via environment variables (spec 4.4).
+# 【中文】DB_HOST / DB_USER / DB_PASSWORD / TDENGINE_USER / TDENGINE_PASSWORD /
+# SERVER_PORT 均可用环境变量覆盖（规格 4.4）。
 server:
+  # 控制 API 端口，默认 8081（Web 模块 8080、分析模块 8082）
   port: ${SERVER_PORT:8081}
 
 spring:
   application:
+    # 应用名，用于日志与进程识别
     name: kms-collector
 
 # Logback level, overridable via the LOG_LEVEL env var (spec 4.2).
+# 【中文】Logback 日志级别，可通过环境变量 LOG_LEVEL 覆盖（规格 4.2）。
 logging:
   level:
+    # 根日志级别，默认 INFO
     root: ${LOG_LEVEL:INFO}
 
 kms:
   datasource:
+    # 达梦 DM8：元数据与最新值（t_collector_config / t_metric_latest 等）
     dm:
       driver-class-name: dm.jdbc.driver.DmDriver
+      # 采集程序运行在宿主机，通过映射端口 30236 连容器内的达梦，故用 localhost 而非容器名
       url: jdbc:dm://${DB_HOST:localhost}:30236
       username: ${DB_USER:SYSDBA}
       password: ${DB_PASSWORD:SYSDBA001}
+    # TDengine：时序数据（kms 库下的超级表 t_perf_realtime 与本机子表）
     tdengine:
       # TAOS-WS is the pure-Java protocol (no taos.dll needed); native TAOS://6030
       # requires the TDengine C client on the host, TAOS-RS://6041 also works.
       # The /kms database is auto-created on startup by the collector.
+      # 【中文】TAOS-WS 是纯 Java 协议（宿主机无需安装 taos.dll）；原生 TAOS://6030
+      # 需要宿主机安装 TDengine C 客户端，TAOS-RS://6041 同样可用。
+      # 【中文】/kms 库由采集模块启动时自动创建（SchemaInitializer 先建库再建表）。
       driver-class-name: com.taosdata.jdbc.ws.WebSocketDriver
+      # 默认走 TAOS-WS（WebSocket，端口 6041）；timezone 必须显式指定，容器与宿主机时区可能不同
       url: jdbc:TAOS-WS://${DB_HOST:localhost}:6041/kms?timezone=Asia/Shanghai
       username: ${TDENGINE_USER:root}
       password: ${TDENGINE_PASSWORD:taosdata}

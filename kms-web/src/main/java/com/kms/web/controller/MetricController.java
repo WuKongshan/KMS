@@ -15,37 +15,65 @@ import java.util.Map;
 /**
  * Metric read APIs (spec 4.4): latest values (DM8), real-time window and
  * history (TDengine).
+ *
+ * <p>【中文】指标读取 API（规格 4.4）：最新值查达梦，实时窗口与历史查询查 TDengine。
+ * <p>【中文】本层只负责参数默认值与格式转换，参数钳制与 SQL 白名单校验都在
+ * {@code MetricQueryService} 中完成。
  */
 @RestController
 @RequestMapping("/api/metrics")
 public class MetricController {
 
+    // 指标查询逻辑全部在 Service 层，Controller 只做参数绑定与默认值处理。
     private final MetricQueryService metricQueryService;
 
     public MetricController(MetricQueryService metricQueryService) {
         this.metricQueryService = metricQueryService;
     }
 
-    /** Current value per metric (dashboard tiles / pie chart). */
+    /**
+     * Current value per metric (dashboard tiles / pie chart).
+     *
+     * <p>【中文】每项指标的当前值（大屏磁贴 / 饼图使用）。响应体是 6 条记录的小数组，
+     * 数据来自达梦的 {@code t_metric_latest} 缓存表。
+     */
     @GetMapping("/latest")
     public List<MetricLatest> latest() {
         return metricQueryService.latest();
     }
 
-    /** All metrics over the last N minutes (real-time chart, 5 s refresh). */
+    /**
+     * All metrics over the last N minutes (real-time chart, 5 s refresh).
+     *
+     * <p>【中文】最近 N 分钟内全部指标的时序数据（实时监控折线图，前端每 5 秒刷新一次）。
+     * <p>【中文】minutes 的具体钳制（1 分钟 ~ 24 小时）在 {@code MetricQueryService.realtime} 中完成，
+     * 此处只提供默认值 30 分钟。
+     */
     @GetMapping("/realtime")
     public List<Map<String, Object>> realtime(@RequestParam(defaultValue = "30") int minutes) {
         return metricQueryService.realtime(minutes);
     }
 
-    /** One metric within a time range (history page); defaults to the last hour. */
+    /**
+     * One metric within a time range (history page); defaults to the last hour.
+     *
+     * <p>【中文】单项指标在指定时间范围内的历史数据（历史查询页），默认查询最近一小时。
+     * <p>【中文】时间范围默认值在方法体内计算，而不使用 {@code @RequestParam(defaultValue = ...)}，
+     * 原因有二：① defaultValue 只能是编译期常量字符串，而“一小时前”必须在运行期才能算出；
+     * ② beginTime 依赖 endTime —— 用户只传 end 时，期望的是“end 之前的一小时”，
+     * 而不是“现在之前的一小时”。
+     */
     @GetMapping("/history")
     public List<Map<String, Object>> history(
             @RequestParam String metricCode,
+            // @DateTimeFormat(iso = ISO.DATE_TIME) 让前端可以直接传 2025-01-15T10:00:00
+            // （Element Plus 的 value-format="YYYY-MM-DDTHH:mm:ss" 正是这种输出格式）。
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime begin,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
+        // 先确定 endTime，再据此推导 beginTime：这个计算顺序保证了“只传 end”时窗口紧贴 end 而非 now。
         LocalDateTime endTime = end == null ? LocalDateTime.now() : end;
         LocalDateTime beginTime = begin == null ? endTime.minusHours(1) : begin;
+        // 指标代码的白名单校验在 MetricQueryService 内完成（列名拼接前的 SQL 注入防护）。
         return metricQueryService.history(metricCode, beginTime, endTime);
     }
 }

@@ -1,38 +1,53 @@
 # KMS web (module D) — dual datasources + RuoYi-style UI server.
 # DB_HOST / DB_USER / DB_PASSWORD / TDENGINE_USER / TDENGINE_PASSWORD /
 # SERVER_PORT can all be overridden via environment variables (spec 4.4).
+# 【中文】KMS 的 Web 模块（模块 D）配置：达梦 + TDengine 双数据源，同时作为运维界面与 REST API 的服务端。
+# 【中文】DB_HOST / DB_USER / DB_PASSWORD / TDENGINE_USER / TDENGINE_PASSWORD / SERVER_PORT
+# 【中文】均可通过环境变量覆盖（规格 4.4），部署时无需改动本文件。
 server:
+  # 【中文】Web 应用端口：8080（采集器 8081、分析器 8082，三者互不冲突）；可用 SERVER_PORT 覆盖。
   port: ${SERVER_PORT:8080}
 
 spring:
   application:
+    # 【中文】应用名：用于日志、Spring Boot 配置标识与注册中心展示。
     name: kms-web
   # Serve the built Vue3 frontend from classpath:/static (copied from
   # kms-web/frontend/dist at build time).
+  # 【中文】只从 classpath:/static/ 提供前端静态资源，即 Vite 构建产物
+  # 【中文】（构建时由 kms-web/frontend/dist 拷贝而来）；因此前端路由必须使用 hash 模式，
+  # 【中文】否则刷新子路由时 Spring Boot 找不到对应文件会返回 404。
   web:
     resources:
       static-locations: classpath:/static/
 
 # Logback level, overridable via the LOG_LEVEL env var.
+# 【中文】全局日志级别：默认 INFO，可用 LOG_LEVEL 环境变量覆盖（logback-spring.xml 会读取该值）。
 logging:
   level:
     root: ${LOG_LEVEL:INFO}
 
 kms:
   datasource:
+    # 【中文】主数据源：达梦 DM8（元数据、采集配置、预警记录）；容器端口 30236 映射到达梦的 5236。
     dm:
       driver-class-name: dm.jdbc.driver.DmDriver
       url: jdbc:dm://${DB_HOST:localhost}:30236
       username: ${DB_USER:SYSDBA}
       password: ${DB_PASSWORD:SYSDBA001}
+    # 【中文】第二数据源：TDengine 时序库（指标历史数据 t_perf_realtime）。
     tdengine:
       # TAOS-WS is the pure-Java protocol (no taos.dll needed); native TAOS://6030
       # requires the TDengine C client on the host, TAOS-RS://6041 also works.
       # The /kms database is auto-created on startup by the collector.
+      # 【中文】TAOS-WS 是纯 Java 协议（无需 taos.dll）；原生 TAOS://6030 需要宿主机安装
+      # 【中文】TDengine C 客户端，TAOS-RS://6041 也可用。/kms 库由采集器启动时自动创建。
       driver-class-name: com.taosdata.jdbc.ws.WebSocketDriver
+      # 【中文】URL 必须带 ?timezone=Asia/Shanghai：容器时区与宿主机不同，否则时间戳会整体偏移。
       url: jdbc:TAOS-WS://${DB_HOST:localhost}:6041/kms?timezone=Asia/Shanghai
       username: ${TDENGINE_USER:root}
       password: ${TDENGINE_PASSWORD:taosdata}
   web:
     # Collector REST control API (module A, port 8081) used by the ops page.
+    # 【中文】采集器（模块 A）的 REST 控制 API 地址，供运维页调用；可用 COLLECTOR_BASE_URL 覆盖。
     collector-base-url: ${COLLECTOR_BASE_URL:http://localhost:8081}
