@@ -38,7 +38,8 @@ function handleAlert(alert) {
 let offAlert
 // ws.onAlert() 返回的退订函数；卸载时必须调用，否则弹窗回调会随路由切换不断累积
 onMounted(() => {
-  // ws 是全局单例，connect 幂等：layout 与 screen 先后挂载也只会建立一条连接
+  // ws 是全局单例，且 connect() 内部已按 readyState 做幂等判断：
+  // layout/screen 与 AlertPopup 先后挂载也只会建立一条连接，预警不会被重复弹出
   ws.connect()
   // 订阅预警事件：收到推送即执行 handleAlert（先播音、再弹窗）
   offAlert = ws.onAlert(handleAlert)

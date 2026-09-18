@@ -38,10 +38,13 @@ function scheduleReconnect() {
 }
 
 // 建立连接并挂上四个事件回调。
-// 已知局限：这里无条件 new WebSocket()，若同一页面里 layout 与 AlertPopup 各调一次 connect()，
-// 就会产生两条连接（服务端日志出现两条 "WS client connected"）；
-// 正确做法是先判断 socket.readyState 是否为 OPEN/CONNECTING，是则直接复用已有连接。
+// 幂等：layout 与 AlertPopup 都会调用 connect()（大屏页面同理），若不做判断就会各建一条连接，
+// 服务端广播时两条连接都收到消息，同一条预警会被反复弹窗。因此先检查 readyState：
+// OPEN/CONNECTING 表示已有可用连接，直接复用；只有 CLOSED/CLOSING 或尚未建连时才新建。
 function connect() {
+  if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+    return
+  }
   try {
     socket = new WebSocket(WS_URL)
   } catch (e) {

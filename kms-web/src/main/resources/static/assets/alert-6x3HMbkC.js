@@ -1,1 +1,0 @@
-import{r as e}from"./metrics-CLCITc0Y.js";const r=t=>e.get("/api/alerts",{params:t}),p=(t=10)=>e.get("/api/alerts/recent",{params:{limit:t}}),g=(t,a)=>e.put(`/api/alerts/${t}/status`,{status:a});export{p as a,r as g,g as u};
