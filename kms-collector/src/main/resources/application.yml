@@ -5,7 +5,7 @@
 # 【中文】DB_HOST / DB_USER / DB_PASSWORD / TDENGINE_USER / TDENGINE_PASSWORD /
 # SERVER_PORT 均可用环境变量覆盖（规格 4.4）。
 server:
-  # 控制 API 端口，默认 8081（Web 模块 8080、分析模块 8082）
+  # 控制 API 端口，默认 8081（Web 模块 3000、分析模块 8082）
   port: ${SERVER_PORT:8081}
 
 spring:
@@ -25,20 +25,23 @@ kms:
     # 达梦 DM8：元数据与最新值（t_collector_config / t_metric_latest 等）
     dm:
       driver-class-name: dm.jdbc.driver.DmDriver
-      # 采集程序运行在宿主机，通过映射端口 30236 连容器内的达梦，故用 localhost 而非容器名
-      url: jdbc:dm://${DB_HOST:localhost}:30236
+      # 【中文】达梦地址：默认连 Docker 容器（宿主机映射端口 30236），可用 DB_HOST / DM_PORT 覆盖。
+      # 【中文】连本机安装的达梦（默认端口 5236）时用 DM_PORT=5236，
+      # 【中文】或直接启用 local profile（见 application-local.yml），一次切换整套连接信息。
+      url: jdbc:dm://${DB_HOST:localhost}:${DM_PORT:30236}
       username: ${DB_USER:SYSDBA}
       password: ${DB_PASSWORD:SYSDBA001}
     # TDengine：时序数据（kms 库下的超级表 t_perf_realtime 与本机子表）
     tdengine:
+      # 【中文】协议、端口、驱动类三者必须一起改，否则驱动与 URL 协议不匹配会直接连接失败：
+      # 【中文】  默认（Docker / 本地含 taosAdapter）：TDENGINE_PROTO=TAOS-WS  PORT=6041  DRIVER=com.taosdata.jdbc.ws.WebSocketDriver
+      # 【中文】  本机原生协议（需装 TDengine C 客户端）：TDENGINE_PROTO=TAOS     PORT=6030  DRIVER=com.taosdata.jdbc.TSDBDriver
+      # 【中文】  本机 REST 协议（无需 C 客户端）：        TDENGINE_PROTO=TAOS-RS  PORT=6041  DRIVER=com.taosdata.jdbc.rs.RestfulDriver
       # TAOS-WS is the pure-Java protocol (no taos.dll needed); native TAOS://6030
       # requires the TDengine C client on the host, TAOS-RS://6041 also works.
       # The /kms database is auto-created on startup by the collector.
-      # 【中文】TAOS-WS 是纯 Java 协议（宿主机无需安装 taos.dll）；原生 TAOS://6030
-      # 需要宿主机安装 TDengine C 客户端，TAOS-RS://6041 同样可用。
-      # 【中文】/kms 库由采集模块启动时自动创建（SchemaInitializer 先建库再建表）。
-      driver-class-name: com.taosdata.jdbc.ws.WebSocketDriver
-      # 默认走 TAOS-WS（WebSocket，端口 6041）；timezone 必须显式指定，容器与宿主机时区可能不同
-      url: jdbc:TAOS-WS://${DB_HOST:localhost}:6041/kms?timezone=Asia/Shanghai
+      driver-class-name: ${TDENGINE_DRIVER:com.taosdata.jdbc.ws.WebSocketDriver}
+      # 【中文】timezone 必须显式指定：容器与宿主机时区可能不同，缺了会导致时间戳整体偏移
+      url: jdbc:${TDENGINE_PROTO:TAOS-WS}://${DB_HOST:localhost}:${TDENGINE_PORT:6041}/kms?timezone=Asia/Shanghai
       username: ${TDENGINE_USER:root}
       password: ${TDENGINE_PASSWORD:taosdata}

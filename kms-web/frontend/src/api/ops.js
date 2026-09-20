@@ -1,7 +1,7 @@
 import request from './request'
 
 // Ops management: collector status + control via the web backend proxy.
-// 运维接口：采集器的状态查询与周期/启停控制。前端只调 web 后端（8080），
+// 运维接口：采集器的状态查询与周期/启停控制。前端只调 web 后端（3000），
 // 由后端代理转发到采集器（8081），所以浏览器无需直连 8081，也就没有跨域问题。
 // 查询采集器状态：{ available, enabled, periodSeconds, lastCollectTime, collectCount, lastError, lastMetrics }。
 export const getCollectorStatus = () => request.get('/api/ops/collector/status')

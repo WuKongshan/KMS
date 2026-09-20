@@ -1,0 +1,30 @@
+# =====================================================================
+# 本机安装版数据库 profile（kms-collector）
+#
+# 用途：与 Docker 环境互斥——同一时刻只连一套库。
+# 启用：java -jar kms-collector-1.0.0.jar --spring.profiles.active=local
+#      或设环境变量 SPRING_PROFILES_ACTIVE=local
+#
+# ⚠️ 切换前务必停掉 Docker 里的对应容器：
+#    - 达梦：容器占的是宿主机 30236，本机达梦用 5236，两者不冲突（可同时开）
+#    - TDengine：容器占的就是 6030/6041，与本机实例端口相同——不停容器的话
+#      本配置会**静默连到容器里的 TDengine**（端口一样，连上了却不知道连的是谁）
+# =====================================================================
+kms:
+  datasource:
+    dm:
+      # 本机达梦默认端口 5236（Docker 环境用的是宿主机映射端口 30236）
+      url: jdbc:dm://${DB_HOST:localhost}:${DM_PORT:5236}
+      username: ${DB_USER:SYSDBA}
+      # 【注意】本机安装时设的 SYSDBA 密码，通常不是 Docker 镜像默认的 SYSDBA001；
+      # 密码不同则用环境变量覆盖：DB_PASSWORD=你的密码
+      password: ${DB_PASSWORD:SYSDBA001}
+    tdengine:
+      # 本机安装包含 taosAdapter（监听 6041），因此协议与驱动同 Docker 环境，无需改动。
+      # 若本机只有 taosd（6030）而没有 taosAdapter，把下面三项一起改：
+      #   driver-class-name: com.taosdata.jdbc.TSDBDriver
+      #   TDENGINE_PROTO=TAOS、TDENGINE_PORT=6030（需装 TDengine C 客户端）
+      driver-class-name: ${TDENGINE_DRIVER:com.taosdata.jdbc.ws.WebSocketDriver}
+      url: jdbc:${TDENGINE_PROTO:TAOS-WS}://${DB_HOST:localhost}:${TDENGINE_PORT:6041}/kms?timezone=Asia/Shanghai
+      username: ${TDENGINE_USER:root}
+      password: ${TDENGINE_PASSWORD:taosdata}

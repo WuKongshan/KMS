@@ -8,10 +8,22 @@
  * 【中文】分析器预警推送的 WebSocket 客户端单例（ws://<主机>:8082/ws/alerts，规格 4.3/4.4）：
  * 断线每 5 秒自动重连，并向订阅者广播"新预警"与"连接状态变化"两类事件。
  * 分析器部署在别的机器时用 VITE_WS_URL 环境变量覆盖地址。
+ * 连接需要令牌：分析器在握手阶段校验 JWT（由 Web 模块签发）。
  */
+import { getToken } from './session'
+
 // 用 window.location.hostname 而不是硬编码 localhost：别人通过局域网 IP 打开页面时也能连上分析器；
 // 浏览器直连 8082（不经 Vite/Spring 代理），所以生产部署必须保证 8082 对浏览器可达。
-const WS_URL = import.meta.env.VITE_WS_URL || `ws://${window.location.hostname}:8082/ws/alerts`
+const WS_BASE = import.meta.env.VITE_WS_URL || `ws://${window.location.hostname}:8082/ws/alerts`
+
+// 握手地址带令牌：浏览器原生的 WebSocket 构造函数不支持自定义请求头，
+// 因此令牌只能放进查询串（?token=...），由分析器的握手拦截器校验。
+// 副作用是令牌可能进入代理/网关日志，所以令牌有效期不宜过长。
+function buildUrl() {
+  const token = getToken()
+  if (!token) return WS_BASE
+  return `${WS_BASE}${WS_BASE.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`
+}
 
 // 模块级单例：ES Module 只会被求值一次，因此下面的变量天然全局唯一，
 // 多个组件 import 本模块时共享同一条 WS 连接，不会各建一条。
@@ -45,8 +57,13 @@ function connect() {
   if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
     return
   }
+  // 未登录（无令牌）时不建连：分析器的握手拦截器会拒绝无令牌的连接，
+  // 发起的握手只会白费一次往返，还会在服务端留下无意义的拒绝日志。
+  if (!getToken()) {
+    return
+  }
   try {
-    socket = new WebSocket(WS_URL)
+    socket = new WebSocket(buildUrl())
   } catch (e) {
     // 构造函数抛错（如 URL 非法）时也要兜底重连，否则连接会永久断开
     scheduleReconnect()

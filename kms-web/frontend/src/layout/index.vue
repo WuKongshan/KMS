@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import ws from '@/utils/ws'
+import { clearAuth, getProfile } from '@/utils/session'
 import AlertPopup from '@/components/AlertPopup.vue'
 
 // RuoYi-style admin layout: dark sidebar + light header + content area.
@@ -48,13 +49,26 @@ const menus = [
   { path: '/realtime', title: '实时监控', icon: 'Odometer' },
   { path: '/history', title: '历史查询', icon: 'Search' },
   { path: '/alert', title: '预警管理', icon: 'Bell' },
-  { path: '/ops', title: '运维管理', icon: 'Setting' }
+  { path: '/ops', title: '运维管理', icon: 'Setting' },
+  { path: '/operlog', title: '操作日志', icon: 'Document' }
 ]
 
 function openScreen() {
   // 用 router.resolve 解析出带 hash 前缀的完整地址（本项目为 hash 路由），
   // 再交给 window.open(..., '_blank')，在浏览器新标签页中打开数据大屏
   window.open(router.resolve({ path: '/screen' }).href, '_blank')
+}
+
+// 当前登录用户（登录时存入 localStorage，顶栏只做展示）；
+// 昵称为空时回退显示登录名，避免顶栏出现空白
+const profile = getProfile()
+
+function handleLogout() {
+  // 无状态令牌无法在服务端作废：清掉本地令牌即完成退出
+  clearAuth()
+  // 跳到登录页后强制刷新，清空内存里的残留状态（WebSocket 连接、各页面缓存的数据）
+  window.location.hash = '#/login'
+  window.location.reload()
 }
 </script>
 
@@ -103,6 +117,9 @@ function openScreen() {
           <el-button size="small" type="primary" plain @click="openScreen">
             <el-icon><DataAnalysis /></el-icon>&nbsp;数据大屏
           </el-button>
+          <!-- 【中文】当前登录用户与退出入口：退出会清掉令牌并回登录页（见 handleLogout） -->
+          <span class="user-name">{{ profile.nickname || profile.username }}</span>
+          <el-button size="small" text @click="handleLogout">退出</el-button>
           <!-- 【中文】实时时钟：由 1 秒定时器不断刷新 now -->
           <span class="clock">{{ now.format('YYYY-MM-DD HH:mm:ss') }}</span>
         </div>
@@ -194,6 +211,10 @@ function openScreen() {
   color: #52514e;
   /* 【中文】等宽数字：秒数跳动时字符宽度一致，右侧元素不会左右抖动 */
   font-variant-numeric: tabular-nums;
+}
+.user-name {
+  font-size: 13px;
+  color: #52514e;
 }
 
 .content {

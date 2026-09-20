@@ -5,8 +5,9 @@
 # 【中文】DB_HOST / DB_USER / DB_PASSWORD / TDENGINE_USER / TDENGINE_PASSWORD / SERVER_PORT
 # 【中文】均可通过环境变量覆盖（规格 4.4），部署时无需改动本文件。
 server:
-  # 【中文】Web 应用端口：8080（采集器 8081、分析器 8082，三者互不冲突）；可用 SERVER_PORT 覆盖。
-  port: ${SERVER_PORT:8080}
+  # 【中文】Web 应用端口：3000（采集器 8081、分析器 8082，三者互不冲突）；可用 SERVER_PORT 覆盖。
+  # 【中文】构建后的前端与 REST 接口同源部署在这个端口上，因此浏览器只需访问 http://localhost:3000。
+  port: ${SERVER_PORT:3000}
 
 spring:
   application:
@@ -28,26 +29,46 @@ logging:
     root: ${LOG_LEVEL:INFO}
 
 kms:
+  # Login layer (option A: Spring Security + JWT). The secret MUST be identical
+  # in kms-web (issues tokens) and kms-analyser (validates the WebSocket token),
+  # so both read the same env var.
+  # 【中文】登录鉴权配置（方案 A：Spring Security + JWT）。密钥必须在 kms-web（签发令牌）
+  # 【中文】与 kms-analyser（校验 WebSocket 令牌）中完全一致，因此两边读同一个环境变量。
+  security:
+    # 【中文】生产环境务必用 JWT_SECRET 覆盖；仍用默认值时启动日志会打印 WARN。长度 ≥ 32 字节。
+    jwt-secret: ${JWT_SECRET:kms-dev-secret-please-override-in-production-0123456789}
+    # 【中文】令牌有效期（分钟），默认 120 分钟；调小可缩短令牌泄露后的可用窗口。
+    jwt-expire-minutes: ${JWT_EXPIRE_MINUTES:120}
   datasource:
-    # 【中文】主数据源：达梦 DM8（元数据、采集配置、预警记录）；容器端口 30236 映射到达梦的 5236。
+    # 【中文】主数据源：达梦 DM8（元数据、采集配置、预警记录、登录与审计表）。
+    # 【中文】默认端口 30236 = Docker 容器 5236 的宿主机映射；连本机安装的达梦用 DM_PORT=5236，
+    # 【中文】或启用 local profile（见 application-local.yml）。
     dm:
       driver-class-name: dm.jdbc.driver.DmDriver
-      url: jdbc:dm://${DB_HOST:localhost}:30236
+      url: jdbc:dm://${DB_HOST:localhost}:${DM_PORT:30236}
       username: ${DB_USER:SYSDBA}
       password: ${DB_PASSWORD:SYSDBA001}
     # 【中文】第二数据源：TDengine 时序库（指标历史数据 t_perf_realtime）。
     tdengine:
+      # 【中文】协议、端口、驱动类三者必须一起改：
+      # 【中文】  默认（Docker / 本地含 taosAdapter）：TDENGINE_PROTO=TAOS-WS  PORT=6041  DRIVER=com.taosdata.jdbc.ws.WebSocketDriver
+      # 【中文】  本机原生协议（需装 TDengine C 客户端）：TDENGINE_PROTO=TAOS     PORT=6030  DRIVER=com.taosdata.jdbc.TSDBDriver
+      # 【中文】  本机 REST 协议（无需 C 客户端）：        TDENGINE_PROTO=TAOS-RS  PORT=6041  DRIVER=com.taosdata.jdbc.rs.RestfulDriver
       # TAOS-WS is the pure-Java protocol (no taos.dll needed); native TAOS://6030
       # requires the TDengine C client on the host, TAOS-RS://6041 also works.
       # The /kms database is auto-created on startup by the collector.
-      # 【中文】TAOS-WS 是纯 Java 协议（无需 taos.dll）；原生 TAOS://6030 需要宿主机安装
-      # 【中文】TDengine C 客户端，TAOS-RS://6041 也可用。/kms 库由采集器启动时自动创建。
-      driver-class-name: com.taosdata.jdbc.ws.WebSocketDriver
+      driver-class-name: ${TDENGINE_DRIVER:com.taosdata.jdbc.ws.WebSocketDriver}
       # 【中文】URL 必须带 ?timezone=Asia/Shanghai：容器时区与宿主机不同，否则时间戳会整体偏移。
-      url: jdbc:TAOS-WS://${DB_HOST:localhost}:6041/kms?timezone=Asia/Shanghai
+      url: jdbc:${TDENGINE_PROTO:TAOS-WS}://${DB_HOST:localhost}:${TDENGINE_PORT:6041}/kms?timezone=Asia/Shanghai
       username: ${TDENGINE_USER:root}
       password: ${TDENGINE_PASSWORD:taosdata}
   web:
     # Collector REST control API (module A, port 8081) used by the ops page.
     # 【中文】采集器（模块 A）的 REST 控制 API 地址，供运维页调用；可用 COLLECTOR_BASE_URL 覆盖。
     collector-base-url: ${COLLECTOR_BASE_URL:http://localhost:8081}
+    # Candidate directories for the log viewer page (see LogQueryService).
+    # Probed in order; the default covers both "started from the project root"
+    # (logs/) and "started from a module directory" (kms-xxx/logs/).
+    # 【中文】"系统日志"页面读取日志文件的候选目录（按顺序探测，命中即用）。
+    # 【中文】默认值同时覆盖两种常见启动方式：项目根启动（logs/）与模块目录启动（kms-xxx/logs/）。
+    log-dirs: ${LOG_DIRS:logs,kms-collector/logs,kms-analyser/logs,kms-web/logs}

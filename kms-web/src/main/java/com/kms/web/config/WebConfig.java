@@ -38,7 +38,7 @@ public class WebConfig implements WebMvcConfigurer {
         return new RestTemplate(factory);
     }
 
-    // CORS 是为 Vite 开发服务器（3000 端口）跨域调用准备的；生产环境前端由 Spring Boot 同源托管，
+    // CORS 是为 Vite 开发服务器（3001 端口）跨域调用准备的；生产环境前端由 Spring Boot 同源托管，
     // 并不需要 CORS，但配上是双保险：用 curl/Postman 直连、或把 VITE_API_BASE 指向完整 URL 时就是真跨域。
     @Override
     public void addCorsMappings(CorsRegistry registry) {

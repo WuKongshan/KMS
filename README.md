@@ -37,7 +37,7 @@ cd kms-web/frontend
 npm install              # 首次需要
 npm run build            # 生成 dist/
 cp -r dist/* ../src/main/resources/static/   # 然后用 Maven 重新构建 kms-web
-# 开发模式：npm run dev  (Vite 端口 :3000，/api 代理到 :8080)
+# 开发模式：npm run dev  (Vite 端口 :3001，/api 代理到 :3000)
 ```
 
 `mvn test -pl kms-database` 运行双数据源连通性测试（需要 Docker 容器已启动；连接配置在 `kms-database/src/test/resources/application.yml`）。
@@ -55,18 +55,45 @@ cp -r dist/* ../src/main/resources/static/   # 然后用 Maven 重新构建 kms-
 | 环境变量 | 默认值 | 作用于 |
 |--------------------|--------------|------------|
 | `DB_HOST` | `localhost` | 两者 |
+| `DM_PORT` | `30236`（Docker 映射端口；本机安装的达梦为 `5236`） | 达梦 |
 | `DB_USER` / `DB_PASSWORD` | `SYSDBA` / `SYSDBA001` | 达梦 |
+| `TDENGINE_PORT` | `6041`（本机原生协议为 `6030`） | TDengine |
+| `TDENGINE_PROTO` | `TAOS-WS`（可选 `TAOS` 原生 / `TAOS-RS` REST） | TDengine |
+| `TDENGINE_DRIVER` | `com.taosdata.jdbc.ws.WebSocketDriver`（改协议必须同步改） | TDengine |
 | `TDENGINE_USER` / `TDENGINE_PASSWORD` | `root` / `taosdata` | TDengine |
-| `SERVER_PORT` | 8080/8081/8082（web/collector/analyser） | 服务端口 |
+| `SERVER_PORT` | 3000/8081/8082（web/collector/analyser） | 服务端口 |
 
-**TDengine 默认协议为 `TAOS-WS`（WebSocket，端口 6041）**——纯 Java 实现，无需在宿主机安装任何客户端。协议探测已确认本机原生 `jdbc:TAOS://...:6030` 会失败（缺少 TDengine C 客户端的 taos.dll），而 TAOS-RS 与 TAOS-WS 均可正常使用。如需使用原生协议，请先安装 TDengine 客户端，再修改 `application.yml` 中的 `driver-class-name` 与 `url`。
+### 在 Docker 库与本机库之间切换（两者互斥，同一时刻只连一套）
+
+默认连接 Docker 容器（宿主机映射端口）。要连**本机安装**的达梦/TDengine，启用 `local` profile：
+
+```bash
+java -jar kms-collector/target/kms-collector-1.0.0.jar --spring.profiles.active=local
+java -jar kms-analyser/target/kms-analyser-1.0.0.jar   --spring.profiles.active=local
+java -jar kms-web/target/kms-web-1.0.0.jar             --spring.profiles.active=local
+# 或用环境变量统一指定：SPRING_PROFILES_ACTIVE=local
+```
+
+`local` profile 的默认值见各模块 `src/main/resources/application-local.yml`（本机达梦 5236、本机 TDengine 6041，密码按安装时的实际值调整）。
+
+**切换前请先停掉 Docker 里对应的容器**：TDengine 的 6030/6041 与本机实例端口完全相同，不停容器会**静默连到容器里的那一套**；达梦不冲突（容器映射 30236 / 本机默认 5236），两者可同时运行。
+
+也可以只临时覆盖单个参数、不启用 profile：
+
+```bash
+java -jar kms-web/target/kms-web-1.0.0.jar --DM_PORT=5236 --DB_PASSWORD=你的本机密码
+```
+
+详见 `数据库双环境适配方案.md`。
+
+**TDengine 默认协议为 `TAOS-WS`（WebSocket，端口 6041）**——纯 Java 实现，无需在宿主机安装任何客户端。协议探测已确认本机原生 `jdbc:TAOS://...:6030` 会失败（缺少 TDengine C 客户端的 taos.dll），而 TAOS-RS 与 TAOS-WS 均可正常使用。如需使用原生协议，请先安装 TDengine 客户端，再用 `TDENGINE_PROTO=TAOS` + `TDENGINE_PORT=6030` + `TDENGINE_DRIVER=com.taosdata.jdbc.TSDBDriver` 三项一起切换。
 
 运行各应用模块：
 
 ```bash
 java -jar kms-collector/target/kms-collector-1.0.0.jar   # 端口 8081
 java -jar kms-analyser/target/kms-analyser-1.0.0.jar     # 端口 8082
-java -jar kms-web/target/kms-web-1.0.0.jar               # 端口 8080
+java -jar kms-web/target/kms-web-1.0.0.jar               # 端口 3000
 ```
 
 ## 采集模块（Step 3）
@@ -120,7 +147,7 @@ Logback：控制台 + 滚动文件 `logs/kms-collector.log`（按天滚动，保
 
 ## Web 模块（Step 5-6）与数据大屏（Step 7）
 
-`kms-web`（模块 D，规格 4.4）= Spring Boot REST 后端（8080）+ 若依风格 Vue 3 / Element Plus 前端（Vite 构建，由 `classpath:/static` 托管）。
+`kms-web`（模块 D，规格 4.4）= Spring Boot REST 后端（3000）+ 若依风格 Vue 3 / Element Plus 前端（Vite 构建，由 `classpath:/static` 托管）。
 
 ### 后端 REST API
 
@@ -155,7 +182,7 @@ Logback：控制台 + 滚动文件 `logs/kms-collector.log`（按天滚动，保
 - analyser 启动即创建并初始化 `t_metric_def` / `t_alert_rule` / `t_alert_record`；第一轮分析即用真实采集数据生成了 2 级波动率预警。
 - 强制触发超限（CPU 上限阈值调低到 1%）后，达梦产生了 **3 级** `THRESHOLD_VOLATILITY` 记录，同时 Node WS 客户端实时收到 WebSocket 推送（`{"id":7,"metricCode":"cpu_usage","alertLevel":3,...}`）——collector → TDengine → analyser → 达梦 → WS 全链路真机打通。
 - 动态阈值任务每 5 分钟重算并记录日志；`cpu_usage`（开启动态标志）按最近 1 小时 mean ± 2×std 自动调整。
-- Web API 用 curl 验证：运维状态/周期（60 → 90 → 60，无需重启即生效）、latest/realtime/history、预警分页与标记处理；未知指标代码返回 400（白名单防 SQL 注入）；构建后的前端由 `http://localhost:8080/` 正常访问。
+- Web API 用 curl 验证：运维状态/周期（60 → 90 → 60，无需重启即生效）、latest/realtime/history、预警分页与标记处理；未知指标代码返回 400（白名单防 SQL 注入）；构建后的前端由 `http://localhost:3000/` 正常访问。
 
 ## Docker 数据库环境（Step 0，已在运行）
 

@@ -45,6 +45,24 @@
             <artifactId>taos-jdbcdriver</artifactId>
         </dependency>
 
+        <!-- JWT: placed in the shared module so both kms-web (issues tokens) and
+             kms-analyser (validates them for the WebSocket handshake) use the
+             exact same signing/verification code and secret -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- Connection tests against the Docker containers -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

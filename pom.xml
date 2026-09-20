@@ -37,6 +37,8 @@
         <oshi.version>7.6.1</oshi.version>
         <dm-jdbc.version>8.1.3.140</dm-jdbc.version>
         <taos-jdbc.version>3.9.0</taos-jdbc.version>
+        <!-- JWT: same version across all three artifacts (api/impl/jackson) -->
+        <jjwt.version>0.12.6</jjwt.version>
     </properties>
 
     <dependencyManagement>
@@ -97,6 +99,26 @@
                 <groupId>com.taosdata.jdbc</groupId>
                 <artifactId>taos-jdbcdriver</artifactId>
                 <version>${taos-jdbc.version}</version>
+            </dependency>
+
+            <!-- JWT (JJWT): stateless tokens shared by the web module (issues them)
+                 and the analyser (validates them on the WebSocket handshake) -->
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-api</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-impl</artifactId>
+                <version>${jjwt.version}</version>
+                <scope>runtime</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-jackson</artifactId>
+                <version>${jjwt.version}</version>
+                <scope>runtime</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>

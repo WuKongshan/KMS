@@ -10,7 +10,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * dual-datasource configuration via {@code scanBasePackages = "com.kms"}.
  * The RuoYi-style UI lands in Step 5 and the dashboard in Step 6.
  *
- * <p>【中文】Web 模块（规格中的“模块 D”）的启动类：本模块监听 8080 端口，同时扮演两个角色，
+ * <p>【中文】Web 模块（规格中的“模块 D”）的启动类：本模块监听 3000 端口，同时扮演两个角色，
  * 一是托管前端构建产物（{@code classpath:/static/}，由 Vite 从 {@code kms-web/frontend}
  * 构建后拷入），二是对外提供 REST API。
  * <p>【中文】{@code scanBasePackages = "com.kms"} 让本模块能扫描到达梦 + TDengine 共享的

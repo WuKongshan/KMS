@@ -1,0 +1,27 @@
+# =====================================================================
+# 本机安装版数据库 profile（kms-web）
+#
+# 用途：与 Docker 环境互斥——同一时刻只连一套库。
+# 启用：java -jar kms-web-1.0.0.jar --spring.profiles.active=local --server.port=3000
+#      或设环境变量 SPRING_PROFILES_ACTIVE=local
+#
+# ⚠️ 切换前务必停掉 Docker 里的对应容器（TDengine 端口与本机实例完全相同，
+#    不停容器会静默连到容器里的 TDengine）
+#
+# 【中文】首次连到一套空库时无需手工建表：启动时的 SchemaInitializer 会幂等创建
+# TDengine 库/超级表/子表与达梦的全部表，并写入种子数据。
+# =====================================================================
+kms:
+  datasource:
+    dm:
+      # 本机达梦默认端口 5236（Docker 环境用的是宿主机映射端口 30236）
+      url: jdbc:dm://${DB_HOST:localhost}:${DM_PORT:5236}
+      username: ${DB_USER:SYSDBA}
+      # 【注意】本机安装时设的 SYSDBA 密码，通常不是 Docker 镜像默认的 SYSDBA001
+      password: ${DB_PASSWORD:SYSDBA001}
+    tdengine:
+      # 本机安装包含 taosAdapter（6041），协议与驱动同 Docker 环境，无需改动
+      driver-class-name: ${TDENGINE_DRIVER:com.taosdata.jdbc.ws.WebSocketDriver}
+      url: jdbc:${TDENGINE_PROTO:TAOS-WS}://${DB_HOST:localhost}:${TDENGINE_PORT:6041}/kms?timezone=Asia/Shanghai
+      username: ${TDENGINE_USER:root}
+      password: ${TDENGINE_PASSWORD:taosdata}

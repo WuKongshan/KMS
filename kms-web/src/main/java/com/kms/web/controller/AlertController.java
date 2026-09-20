@@ -1,9 +1,11 @@
 package com.kms.web.controller;
 
 import com.kms.database.entity.AlertRecord;
+import com.kms.web.annotation.OperLog;
 import com.kms.web.service.AlertService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -74,6 +76,8 @@ public class AlertController {
      * <p>【中文】状态值放在请求体中传入（{@code {"status": 1}}），记录 id 走路径变量。
      */
     @PutMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    @OperLog(module = "预警", type = "ALERT_STATUS", desc = "修改预警处理状态（预警 ID {0}）")
     public AlertRecord updateStatus(@PathVariable Long id, @RequestBody Map<String, Integer> body) {
         try {
             AlertRecord record = alertService.updateStatus(id, body.get("status"));
