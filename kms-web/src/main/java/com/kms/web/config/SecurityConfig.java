@@ -53,8 +53,12 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 登录接口自身必须放行，否则没人能拿到令牌
-                        .requestMatchers("/api/auth/login").permitAll()
+                        // 登录与注册接口必须放行，否则没人能拿到令牌（注册接口自身在
+                        // 关闭注册开关时会返回 403，不需要在这里区分——URL 级只判断"是否需要登录"）
+                        .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
+                        // Swagger / OpenAPI 文档必须放行：这些路径不属于 /api/**，但显式列出更稳妥——
+                        // 若将来有人把兜底规则收紧为 denyAll，接口文档不会莫名变成 401
+                        .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         // 其余接口一律需要令牌（含查询接口：按"全部需要登录"的要求）
                         .requestMatchers("/api/**").authenticated()
                         // 静态资源（index.html、JS/CSS、登录页）放行；

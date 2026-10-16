@@ -3,6 +3,9 @@ package com.kms.web.controller;
 import com.kms.database.entity.AlertRecord;
 import com.kms.web.annotation.OperLog;
 import com.kms.web.service.AlertService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -30,6 +33,8 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/alerts")
+@Tag(name = "预警管理", description = "预警分页查询（可按级别/状态/时间筛选）、最新预警、标记处理状态。")
+@SecurityRequirement(name = "bearerAuth")
 public class AlertController {
 
     // 预警查询逻辑位于 Service 层，Controller 只做参数绑定与异常到 HTTP 状态码的翻译。
@@ -47,6 +52,9 @@ public class AlertController {
      * LambdaQueryWrapper condition 参数实现），pageNum/pageSize 有默认值。
      */
     @GetMapping
+    @Operation(summary = "预警分页列表",
+            description = "返回 {total, rows}（若依表格约定），按时间倒序。level：1 阈值 / 2 波动 / 3 严重；"
+                    + "status：0 未处理 / 1 已处理；所有筛选条件均为可选。")
     public Map<String, Object> page(@RequestParam(defaultValue = "1") long pageNum,
                                     @RequestParam(defaultValue = "10") long pageSize,
                                     @RequestParam(required = false) Integer level,
@@ -64,6 +72,8 @@ public class AlertController {
      * <p>【中文】最新 N 条预警（大屏顶部滚动跑马灯使用）。
      */
     @GetMapping("/recent")
+    @Operation(summary = "最新 N 条预警",
+            description = "大屏跑马灯与右侧列表的数据源。limit 服务端钳制在 1~100，防止整表扫描。")
     public List<AlertRecord> recent(@RequestParam(defaultValue = "10") int limit) {
         // 参数钳制：限制在 1 ~ 100 之间，防止前端传入 limit=100000 导致预警表被整表扫描。
         return alertService.recent(Math.max(1, Math.min(limit, 100)));
@@ -78,6 +88,9 @@ public class AlertController {
     @PutMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
     @OperLog(module = "预警", type = "ALERT_STATUS", desc = "修改预警处理状态（预警 ID {0}）")
+    @Operation(summary = "标记预警处理状态",
+            description = "status=1 已处理 / 0 未处理，id 走路径变量。记录不存在返回 404，值域非法返回 400。"
+                    + "仅 ADMIN 可用，且会写入操作审计日志。")
     public AlertRecord updateStatus(@PathVariable Long id, @RequestBody Map<String, Integer> body) {
         try {
             AlertRecord record = alertService.updateStatus(id, body.get("status"));

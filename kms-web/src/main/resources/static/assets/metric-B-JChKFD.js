@@ -1,0 +1,1 @@
+import{r as e}from"./request-AVeYjKxG.js";const i=()=>e.get("/api/metrics/latest"),r=(t=30)=>e.get("/api/metrics/realtime",{params:{minutes:t}}),c=t=>e.get("/api/metrics/history",{params:t}),m=()=>e.get("/api/metrics/defs"),o=(t,s)=>e.put(`/api/metrics/defs/${t}`,s);export{r as a,c as b,m as c,i as g,o as u};

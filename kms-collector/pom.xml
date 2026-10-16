@@ -32,6 +32,13 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+
+        <!-- Swagger / OpenAPI 3：采集器自身的控制 API 也自动生成文档（:8081/swagger-ui/index.html）。
+             注意采集器未接入鉴权（内部接口），部署时应限制来源，详见测试报告 SEC-01。 -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

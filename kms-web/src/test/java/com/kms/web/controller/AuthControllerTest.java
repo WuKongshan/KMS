@@ -25,9 +25,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Controller-level tests for sign-in. Standalone MockMvc (no Spring context, no
  * database), so the login rules are verified without any infrastructure.
  *
- * <p>【中文】登录接口的控制器测试。用 standalone MockMvc（不启动 Spring 容器、不连数据库），
- * 在没有环境的情况下也能验证登录规则：
- * 正确密码签发令牌、密码错误 401、账号停用 403、参数缺失 400。
+ * <p>【中文】登录与注册接口的控制器测试。用 standalone MockMvc（不启动 Spring 容器、不连数据库），
+ * 在没有环境的情况下也能验证认证规则：
+ * 正确密码签发令牌、密码错误 401、账号停用 403、参数缺失 400；
+ * 注册成功且角色固定为 VIEWER、用户名重复/过短密码/非法用户名 400、注册关闭 403。
  */
 class AuthControllerTest {
 
@@ -42,8 +43,9 @@ class AuthControllerTest {
     void setUp() {
         mapper = mock(SysUserMapper.class);
         KmsJwtService jwtService = new KmsJwtService(SECRET, 120);
+        // 最后一个参数是"注册开关"（true = 允许开放注册）
         mockMvc = MockMvcBuilders
-                .standaloneSetup(new AuthController(mapper, encoder, jwtService))
+                .standaloneSetup(new AuthController(mapper, encoder, jwtService, true))
                 .build();
     }
 
@@ -112,5 +114,72 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"\",\"password\":\"\"}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    // ---------------- 注册 ----------------
+
+    @Test
+    void registerCreatesViewerAccountAndReturnsToken() throws Exception {
+        // selectCount 未被 stub → Mockito 默认返回 null，走"用户名可用"分支
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"zhangsan\",\"password\":\"user123456\",\"nickname\":\"张三\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isNotEmpty())
+                .andExpect(jsonPath("$.username").value("zhangsan"))
+                .andExpect(jsonPath("$.nickname").value("张三"))
+                // 角色必须固定为 VIEWER：注册接口绝不接受客户端提权
+                .andExpect(jsonPath("$.role").value("VIEWER"));
+    }
+
+    @Test
+    void registerIgnoresClientSuppliedRole() throws Exception {
+        // 请求体里塞 role=ADMIN 也应被忽略（DTO 里根本没有 role 字段）
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"hacker\",\"password\":\"user123456\",\"role\":\"ADMIN\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role").value("VIEWER"));
+    }
+
+    @Test
+    void registerWithDuplicateUsernameIsBadRequest() throws Exception {
+        when(mapper.selectCount(any())).thenReturn(1L);
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"admin\",\"password\":\"user123456\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void registerWithShortPasswordIsBadRequest() throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"lisi\",\"password\":\"123\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void registerWithInvalidUsernameIsBadRequest() throws Exception {
+        // 用户名含空格：不符合 3~20 位字母/数字/下划线/中文的规则
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"bad name\",\"password\":\"user123456\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void registerIsForbiddenWhenDisabled() throws Exception {
+        // 关闭注册后的实例：应返回 403 而不是 401（功能不可用 ≠ 未认证）
+        MockMvc disabled = MockMvcBuilders
+                .standaloneSetup(new AuthController(mapper, encoder,
+                        new KmsJwtService(SECRET, 120), false))
+                .build();
+
+        disabled.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"wangwu\",\"password\":\"user123456\"}"))
+                .andExpect(status().isForbidden());
     }
 }

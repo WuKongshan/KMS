@@ -161,7 +161,7 @@ onBeforeUnmount(() => {
 }
 .chart {
   /* 【中文】必须给定确定高度：ECharts 需要容器有高度才能算出画布尺寸，0 高度会画出空白图 */
-  height: 380px;
+  height: 500px;
 }
 .chart-note {
   font-size: 12px;

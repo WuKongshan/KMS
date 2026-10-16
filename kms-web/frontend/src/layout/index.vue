@@ -43,13 +43,16 @@ onBeforeUnmount(() => {
 // 顶栏标题直接取路由 meta.title（在 router 中配置），取不到时回退为空字符串
 const pageTitle = computed(() => route.meta?.title || '')
 
-// 侧边栏菜单项：path 与路由表一一对应，icon 是 Element Plus 的图标组件名
+// 侧边栏菜单全集：path 与路由表一一对应，icon 是 Element Plus 的图标组件名
 // （模板里用 <component :is="menu.icon" /> 动态渲染）
-const menus = [
+// adminOnly = true 的菜单只对 ADMIN 显示（指标配置的接口本身也做了 ADMIN 校验，
+// 前端过滤只是避免让普通用户点进去看 403）
+const MENUS = [
   { path: '/realtime', title: '实时监控', icon: 'Odometer' },
   { path: '/history', title: '历史查询', icon: 'Search' },
   { path: '/alert', title: '预警管理', icon: 'Bell' },
   { path: '/ops', title: '运维管理', icon: 'Setting' },
+  { path: '/metric-config', title: '指标配置', icon: 'SetUp', adminOnly: true },
   { path: '/operlog', title: '操作日志', icon: 'Document' }
 ]
 
@@ -62,6 +65,9 @@ function openScreen() {
 // 当前登录用户（登录时存入 localStorage，顶栏只做展示）；
 // 昵称为空时回退显示登录名，避免顶栏出现空白
 const profile = getProfile()
+
+// 侧边栏实际展示的菜单：按角色过滤掉仅管理员可见的项（如"指标配置"）
+const menus = computed(() => MENUS.filter((m) => !m.adminOnly || profile.role === 'ADMIN'))
 
 function handleLogout() {
   // 无状态令牌无法在服务端作废：清掉本地令牌即完成退出
@@ -166,12 +172,12 @@ function handleLogout() {
 }
 .sidebar-menu {
   border-right: none;
-  /* 【中文】覆盖 Element Plus 菜单的 CSS 变量来实现深色菜单主题：
+  /* 【中文】覆盖 Element Plus 菜单的 CSS 变量来实现深色菜单主题： #0d4891 #304156
      底色 #304156、常规文字 #bfcbd9、悬停底色 #263445、选中高亮 #409eff、菜单项行高 48px */
   --el-menu-bg-color: #304156;
   --el-menu-text-color: #bfcbd9;
   --el-menu-hover-bg-color: #263445;
-  --el-menu-active-color: #409eff;
+  --el-menu-active-color: #ff4040;
   --el-menu-item-height: 48px;
 }
 
@@ -195,7 +201,7 @@ function handleLogout() {
   font-size: 18px;
   /* 【中文】鼠标移上去变手型，提示这是可点击的折叠开关 */
   cursor: pointer;
-  color: #52514e;
+  color: #22c756;
 }
 .page-title {
   font-size: 15px;

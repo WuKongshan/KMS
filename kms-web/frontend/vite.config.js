@@ -15,10 +15,14 @@ export default defineConfig({
     }
   },
   server: {
-    // 开发服务器端口：web 应用已占用 3000，开发服务器改用 3001，避免同时启动时端口冲突
     port: 3001,
+    host: '0.0.0.0',
+    allowedHosts: true,
+    hmr: {
+      protocol: 'ws',
+      clientPort: 80
+    },
     proxy: {
-      // 代理目标必须是 web 应用实际监听的端口（3000），否则开发模式下接口全部 404/连不上
       '/api': {
         target: 'http://localhost:3000',
         changeOrigin: true

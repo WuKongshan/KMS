@@ -51,6 +51,14 @@ const router = createRouter({
           meta: { title: '运维管理', icon: 'Setting' }
         },
         {
+          // 指标配置页：改上下限 / 波动率阈值 / 动态阈值开关（接口仅 ADMIN，VIEWER 会得 403）
+          // meta.adminOnly 用于侧边栏按角色过滤：VIEWER 看不到这个入口
+          path: 'metric-config',
+          name: 'MetricConfig',
+          component: () => import('@/views/metric-config/index.vue'),
+          meta: { title: '指标配置', icon: 'SetUp', adminOnly: true }
+        },
+        {
           // 操作日志页：审计"谁做了什么"（登录/改周期/启停采集/处理预警）
           path: 'operlog',
           name: 'OperLog',
@@ -65,6 +73,14 @@ const router = createRouter({
       name: 'Login',
       component: () => import('@/views/login/index.vue'),
       meta: { title: '登录' }
+    },
+    {
+      // 注册页：同为公开路由（未登录才可能访问），注册成功后后端直接返回令牌，
+      // 由页面写入本地会话后跳首页，因此不需要再走一次登录流程
+      path: '/register',
+      name: 'Register',
+      component: () => import('@/views/register/index.vue'),
+      meta: { title: '注册账号' }
     },
     {
       // 数据大屏：独立全屏页面，故意不挂在 Layout 之下（没有侧边栏与顶栏）。
@@ -85,13 +101,17 @@ const router = createRouter({
 
 // 全局前置守卫：未登录一律去登录页（"全部需要登录"的要求）。
 // 这是前端体验层的拦截，真正的把关在后端 Spring Security——前端守卫可以被绕过。
+// 公开路由白名单：登录页与注册页在未登录时也必须能访问，否则无法进入系统。
+const PUBLIC_PATHS = ['/login', '/register']
+
 router.beforeEach((to, from, next) => {
   const hasToken = !!getToken()
-  if (!hasToken && to.path !== '/login') {
+  const isPublic = PUBLIC_PATHS.includes(to.path)
+  if (!hasToken && !isPublic) {
     // 记下原目标，登录后可跳回去（当前实现回首页，保持简单）
     next('/login')
-  } else if (hasToken && to.path === '/login') {
-    // 已登录还去登录页 → 直接进首页，避免重复登录
+  } else if (hasToken && isPublic) {
+    // 已登录还去登录/注册页 → 直接进首页，避免重复登录
     next('/')
   } else {
     next()

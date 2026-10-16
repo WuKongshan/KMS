@@ -39,6 +39,8 @@
         <taos-jdbc.version>3.9.0</taos-jdbc.version>
         <!-- JWT: same version across all three artifacts (api/impl/jackson) -->
         <jjwt.version>0.12.6</jjwt.version>
+        <!-- Swagger / OpenAPI 3 (springdoc): 2.8.x 对应 Spring Boot 3.4/3.5 -->
+        <springdoc.version>2.8.9</springdoc.version>
     </properties>
 
     <dependencyManagement>
@@ -119,6 +121,13 @@
                 <artifactId>jjwt-jackson</artifactId>
                 <version>${jjwt.version}</version>
                 <scope>runtime</scope>
+            </dependency>
+
+            <!-- Swagger UI + OpenAPI 3 文档（由端点与注解自动生成，无需手写） -->
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

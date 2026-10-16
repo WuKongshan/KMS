@@ -9,3 +9,10 @@ export const getLatest = () => request.get('/api/metrics/latest')
 export const getRealtime = (minutes = 30) => request.get('/api/metrics/realtime', { params: { minutes } })
 // 按条件查历史数据（TDengine）：params 形如 { metricCode, begin, end }，时间用 ISO 字符串。
 export const getHistory = (params) => request.get('/api/metrics/history', { params })
+
+// 指标阈值配置（仅 ADMIN，其他角色请求会返回 403）
+// 读取全部指标定义：含上下限、波动率阈值、动态阈值开关与最后修改时间。
+export const getMetricDefs = () => request.get('/api/metrics/defs')
+// 修改单个指标的阈值配置：data 形如 { upperThreshold, lowerThreshold, volatilityThreshold, dynamicThreshold }
+// 注意语义是"整体替换"——未传的阈字段会被清空，因此编辑弹窗始终提交全部四个字段。
+export const updateMetricDef = (metricCode, data) => request.put(`/api/metrics/defs/${metricCode}`, data)

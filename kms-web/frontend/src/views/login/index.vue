@@ -71,6 +71,12 @@ async function handleLogin() {
 
       <!-- 【中文】默认账号提示：首次部署时方便进入系统，生产环境应在首次登录后立即修改密码 -->
       <div class="login-tip">默认账号 admin / admin123，首次登录后请及时修改</div>
+      <!-- 【中文】注册入口：新用户自助注册（注册后为只读 VIEWER 角色） -->
+      <div class="login-link">
+        <el-link type="primary" :underline="false" @click="router.push('/register')">
+          没有账号？注册一个
+        </el-link>
+      </div>
     </div>
   </div>
 </template>
@@ -112,6 +118,10 @@ async function handleLogin() {
   margin-top: 16px;
   font-size: 12px;
   color: #898781;
+  text-align: center;
+}
+.login-link {
+  margin-top: 10px;
   text-align: center;
 }
 </style>

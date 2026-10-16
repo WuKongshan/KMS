@@ -2,6 +2,9 @@ package com.kms.web.controller;
 
 import com.kms.database.entity.MetricLatest;
 import com.kms.web.service.MetricQueryService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,6 +25,8 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/metrics")
+@Tag(name = "指标查询", description = "指标最新值（达梦）、实时窗口与历史查询（TDengine）。")
+@SecurityRequirement(name = "bearerAuth")
 public class MetricController {
 
     // 指标查询逻辑全部在 Service 层，Controller 只做参数绑定与默认值处理。
@@ -38,6 +43,9 @@ public class MetricController {
      * 数据来自达梦的 {@code t_metric_latest} 缓存表。
      */
     @GetMapping("/latest")
+    @Operation(summary = "各指标当前值",
+            description = "返回 6 项指标的最新值，数据来自达梦缓存表 t_metric_latest（采集器每周期更新）。"
+                    + "用于页面磁贴与饼图。")
     public List<MetricLatest> latest() {
         return metricQueryService.latest();
     }
@@ -50,6 +58,9 @@ public class MetricController {
      * 此处只提供默认值 30 分钟。
      */
     @GetMapping("/realtime")
+    @Operation(summary = "最近 N 分钟全部指标",
+            description = "时序数据来自 TDengine 超级表 t_perf_realtime，前端每 5 秒刷新。"
+                    + "minutes 服务端钳制在 1~1440 分钟，默认 30。")
     public List<Map<String, Object>> realtime(@RequestParam(defaultValue = "30") int minutes) {
         return metricQueryService.realtime(minutes);
     }
@@ -64,6 +75,9 @@ public class MetricController {
      * 而不是“现在之前的一小时”。
      */
     @GetMapping("/history")
+    @Operation(summary = "单项指标历史查询",
+            description = "默认查询最近 1 小时；只传 end 时窗口紧贴 end 而非当前时间。"
+                    + "metricCode 走白名单校验（拼列名前过滤），非法值返回 400。")
     public List<Map<String, Object>> history(
             @RequestParam String metricCode,
             // @DateTimeFormat(iso = ISO.DATE_TIME) 让前端可以直接传 2025-01-15T10:00:00

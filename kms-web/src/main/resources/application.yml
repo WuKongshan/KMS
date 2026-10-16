@@ -39,6 +39,10 @@ kms:
     jwt-secret: ${JWT_SECRET:kms-dev-secret-please-override-in-production-0123456789}
     # 【中文】令牌有效期（分钟），默认 120 分钟；调小可缩短令牌泄露后的可用窗口。
     jwt-expire-minutes: ${JWT_EXPIRE_MINUTES:120}
+    # 【中文】是否允许开放注册（POST /api/auth/register）。默认 true 便于演示与自建账号；
+    # 【中文】生产环境建议改为 false：只由管理员后台开号，避免任何人都能注册后查看监控数据。
+    # 【中文】关闭时注册接口返回 403（功能不可用 ≠ 未认证）。注册账号的角色固定为 VIEWER（只读）。
+    registration-enabled: ${REGISTRATION_ENABLED:true}
   datasource:
     # 【中文】主数据源：达梦 DM8（元数据、采集配置、预警记录、登录与审计表）。
     # 【中文】默认端口 30236 = Docker 容器 5236 的宿主机映射；连本机安装的达梦用 DM_PORT=5236，

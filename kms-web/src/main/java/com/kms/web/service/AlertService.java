@@ -42,8 +42,8 @@ public class AlertService {
                 .eq(level != null, AlertRecord::getAlertLevel, level)
                 .eq(status != null, AlertRecord::getStatus, status)
                 // create_time 的闭区间过滤，对应预警管理页的时间范围筛选。
-                .ge(begin != null, AlertRecord::getCreateTime, begin)
-                .le(end != null, AlertRecord::getCreateTime, end)
+                .ge(begin != null, AlertRecord::getCreateTime, begin)  // >= 下限
+                .le(end != null, AlertRecord::getCreateTime, end)  // <= 上限
                 .orderByDesc(AlertRecord::getCreateTime);
         Page<AlertRecord> page = alertRecordMapper.selectPage(new Page<>(pageNum, pageSize), wrapper);
         // Map.of 生成不可变 Map，键名固定为 total/rows，正好与若依前端表格组件的约定一致。

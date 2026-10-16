@@ -40,6 +40,13 @@
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
 
+        <!-- Swagger / OpenAPI 3：/swagger-ui/index.html 提供可交互接口文档，
+             /v3/api-docs 输出 OpenAPI JSON（可由 Postman/代码生成器直接导入） -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        </dependency>
+
         <!-- WebSocket client-facing endpoint for alert push -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

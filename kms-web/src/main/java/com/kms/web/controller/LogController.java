@@ -3,6 +3,9 @@ package com.kms.web.controller;
 import com.kms.web.annotation.OperLog;
 import com.kms.web.dto.LogTail;
 import com.kms.web.service.LogQueryService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,6 +30,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/logs")
 @PreAuthorize("hasRole('ADMIN')")
+@Tag(name = "日志查看（仅 ADMIN）", description = "查看三个服务的技术日志尾部，支持关键字过滤。日志含运维信息，故限 ADMIN。")
+@SecurityRequirement(name = "bearerAuth")
 public class LogController {
 
     private final LogQueryService logQueryService;
@@ -41,6 +46,8 @@ public class LogController {
      * <p>【中文】返回可读的日志服务列表（含解析到的文件路径），供页面下拉框展示。
      */
     @GetMapping("/services")
+    @Operation(summary = "可读日志服务列表",
+            description = "返回 collector / analyser / web 三个服务及其日志文件的实际路径与是否可读。")
     public List<Map<String, Object>> services() {
         return logQueryService.services();
     }
@@ -53,6 +60,10 @@ public class LogController {
      */
     @GetMapping
     @OperLog(module = "日志", type = "VIEW_LOG", desc = "查看 {0} 服务的日志")
+    @Operation(summary = "读取日志尾部",
+            description = "lines 默认 200、上限 2000；keyword 不区分大小写做包含过滤。"
+                    + "service 走白名单校验：未知服务名返回 400，且该参数只作为映射键使用、"
+                    + "不参与路径拼接，因此不存在目录穿越。")
     public LogTail query(@RequestParam(defaultValue = "analyser") String service,
                          @RequestParam(defaultValue = "200") int lines,
                          @RequestParam(required = false) String keyword) {

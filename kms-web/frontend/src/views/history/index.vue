@@ -60,10 +60,11 @@ function buildOption() {
         name: METRIC_META[code].label,
         type: 'line',
         // 隐藏数据点符号，让曲线更干净
-        showSymbol: false,
+        showSymbol: true,
         // 连接空值点，指标偶尔缺采时曲线不会断开
+        itemStyle: { color: '#ff0000' },
         connectNulls: true,
-        lineStyle: { width: 2 },
+        lineStyle: { width: 2, color: METRIC_META[code].color },
         data: rows.value.map((r) => r.value)
       }
     ]

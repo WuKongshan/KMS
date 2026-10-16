@@ -42,6 +42,10 @@ let offStatus
 // 一行把亮色主题的指标色映射成深色主题色：{ cpu_usage: '#...', ... }
 const DARK_SERIES = Object.fromEntries(METRIC_CODES.map((c) => [c, METRIC_META[c].darkColor]))
 
+function exitScreen() {
+  window.close()
+}
+
 // ---------- charts ----------
 // 图表构造区：饼（环）图与折线图的 ECharts option 构造函数
 
@@ -238,7 +242,7 @@ const LEVEL_TEXT = { 1: '1级·阈值', 2: '2级·波动', 3: '3级·严重' }
         <span class="clock">{{ now.format('YYYY-MM-DD HH:mm:ss') }}</span>
         <!-- 【中文】退出大屏：调用 window.close() 关闭当前标签页
              （浏览器只允许脚本关闭由脚本打开的窗口，直接输入地址访问时可能无效） -->
-        <el-button size="small" plain @click="window.close()">退出大屏</el-button>
+        <el-button size="small" plain @click="exitScreen()">退出大屏</el-button>
       </div>
     </div>
 

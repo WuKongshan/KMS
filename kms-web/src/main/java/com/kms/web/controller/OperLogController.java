@@ -1,6 +1,9 @@
 package com.kms.web.controller;
 
 import com.kms.web.service.OperLogService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +24,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/oper-logs")
 @PreAuthorize("hasRole('ADMIN')")
+@Tag(name = "操作日志（仅 ADMIN）", description = "操作审计：谁在何时从哪个 IP 做了什么、结果与耗时。审计含全员行为轨迹，故限 ADMIN。")
+@SecurityRequirement(name = "bearerAuth")
 public class OperLogController {
 
     private final OperLogService operLogService;
@@ -36,6 +41,9 @@ public class OperLogController {
      * 全部条件可选，未传则不加该条件。返回若依表格约定的 {@code {total, rows}}。
      */
     @GetMapping
+    @Operation(summary = "操作日志分页查询",
+            description = "返回 {total, rows}。支持 username（模糊）、operType、module、时间范围筛选。"
+                    + "敏感参数（password/token 等）在落库前已打码为 ***，不会出现在响应里。")
     public Map<String, Object> page(
             @RequestParam(defaultValue = "1") long pageNum,
             @RequestParam(defaultValue = "20") long pageSize,

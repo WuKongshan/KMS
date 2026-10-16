@@ -145,7 +145,15 @@ public class OperLogAspect {
         return "匿名";
     }
 
-    // 渲染描述模板里的 {0} {1} 占位符（仅支持标量参数）
+    /**
+     * Render {@code {0}} / {@code {1}} placeholders in the description template.
+     *
+     * <p>【中文】渲染描述模板里的 {@code {0}} {@code {1}} 占位符，<b>只替换标量参数</b>。
+     * <p>【中文】非标量（DTO、集合等）一律替换成 {@code ?}，刻意不做 {@code toString()}：
+     * DTO 的 toString 往往带全部字段，例如注册/登录请求体会包含<b>明文密码</b>，
+     * 一旦拼进审计描述就等于把凭证写进了数据库。参数明细另有 request_params 列承载，
+     * 那一列经过敏感字段打码，是唯一允许出现参数内容的出口。
+     */
     private String renderDesc(String template, Object[] args) {
         if (template == null || template.isEmpty() || !template.contains("{")) {
             return template;
@@ -156,9 +164,21 @@ public class OperLogAspect {
             if (!rendered.contains(placeholder)) {
                 continue;
             }
-            rendered = rendered.replace(placeholder, String.valueOf(args[i]));
+            rendered = rendered.replace(placeholder, scalarText(args[i]));
         }
         return rendered;
+    }
+
+    // 标量参数取字面值，其余（对象/集合/数组）统一返回 "?"，避免把整对象序列化进描述
+    private String scalarText(Object arg) {
+        if (arg == null) {
+            return "null";
+        }
+        if (arg instanceof Number || arg instanceof Boolean || arg instanceof Character
+                || arg instanceof CharSequence) {
+            return String.valueOf(arg);
+        }
+        return "?";
     }
 
     // 参数摘要：JSON 化 + 打码敏感字段 + 截断；不可序列化的参数（请求/响应/上传文件）跳过
