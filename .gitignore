@@ -50,3 +50,21 @@ logs/
 
 # Claude Code local settings
 .claude/
+
+# 文档、图表、报告与答辩材料（不入代码库）
+md/
+*.md.bak
+KMS结题答辩汇报/
+output/
+
+# 接口测试集合与部署脚本（按需单独维护）
+postman/
+.postman/
+deploy/
+
+# AI 辅助工程与临时目录
+AI/
+新建文件夹/
+
+# WorkBuddy 项目数据
+.workbuddy/
