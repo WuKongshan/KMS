@@ -259,3 +259,10 @@ Logback：控制台 + 滚动文件 `logs/kms-collector.log`（按天滚动，保
   - WebSocket：`jdbc:TAOS-WS://localhost:6041/?timezone=Asia/Shanghai`
 
 - **时区**：TDengine JDBC URL 必须带 `?timezone=Asia/Shanghai`——容器时区与宿主机不同。
+
+## 开发约定
+
+- **提交信息**：使用 `feat / fix / chore / docs / test` 前缀 + 中文简述，正文列要点。
+- **署名**：提交信息不附加 `Co-Authored-By` 等非本人署名；仓库已配置 `commit-msg` 钩子自动剥离此类行。
+- **入库范围**：仅业务代码与构建配置入库；文档、图表、答辩材料、接口测试集合与部署脚本由 `.gitignore` 排除（见文件内注释）。
+
